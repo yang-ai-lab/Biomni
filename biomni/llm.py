@@ -72,6 +72,10 @@ def get_llm(
                 source = "Groq"
             elif base_url is not None:
                 source = "Custom"
+            elif model.startswith(
+                ("anthropic.claude-", "amazon.titan-", "meta.llama-", "mistral.", "cohere.", "ai21.", "us.")
+            ):
+                source = "Bedrock"
             elif "/" in model or any(
                 name in model.lower()
                 for name in [
@@ -87,10 +91,6 @@ def get_llm(
                 ]
             ):
                 source = "Ollama"
-            elif model.startswith(
-                ("anthropic.claude-", "amazon.titan-", "meta.llama-", "mistral.", "cohere.", "ai21.", "us.")
-            ):
-                source = "Bedrock"
             else:
                 raise ValueError("Unable to determine model source. Please specify 'source' parameter.")
 
