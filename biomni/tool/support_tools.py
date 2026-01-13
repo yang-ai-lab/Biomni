@@ -2,7 +2,19 @@ import base64
 import io
 import os
 import sys
+from contextlib import contextmanager
 from io import StringIO
+
+
+@contextmanager
+def pushd(path):
+    old = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(old)
+
 
 # Create a persistent namespace that will be shared across all executions
 _persistent_namespace = {}
@@ -35,7 +47,6 @@ def run_python_repl(command: str, working_dir: str | None = None) -> str:
                 if not os.path.exists(working_dir):
                     return f"Error: Working directory '{working_dir}' does not exist"
                 # Prepend directory change to the command
-                command = f"import os\nos.chdir({repr(working_dir)})\n{command}"
             except Exception as e:
                 return f"Error preparing working directory '{working_dir}': {str(e)}"
 
@@ -44,7 +55,11 @@ def run_python_repl(command: str, working_dir: str | None = None) -> str:
             _apply_matplotlib_patches()
 
             # Execute the command in the persistent namespace
-            exec(command, _persistent_namespace)
+            if working_dir is None:
+                exec(command, _persistent_namespace)
+            else:
+                with pushd(working_dir):
+                    exec(command, _persistent_namespace)
             output = mystdout.getvalue()
 
             # Capture any matplotlib plots that were generated
