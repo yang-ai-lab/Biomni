@@ -22,17 +22,25 @@ from pydantic import BaseModel, Field, ValidationError
 
 
 # Add these new functions for running R code and CLI commands
-def run_r_code(code: str) -> str:
+def run_r_code(code: str, working_dir: str | None = None) -> str:
     """Run R code using subprocess.
 
     Args:
         code: R code to run
+        working_dir: Working directory for R code execution. If provided, changes to this directory permanently.
 
     Returns:
         Output of the R code
 
     """
     try:
+        # Change to working directory if specified (permanent change)
+        if working_dir is not None:
+            try:
+                os.chdir(working_dir)
+            except Exception as e:
+                return f"Error changing to working directory '{working_dir}': {str(e)}"
+
         # Create a temporary file to store the R code
         with tempfile.NamedTemporaryFile(suffix=".R", mode="w", delete=False) as f:
             f.write(code)
@@ -53,11 +61,12 @@ def run_r_code(code: str) -> str:
         return f"Error running R code: {str(e)}"
 
 
-def run_bash_script(script: str) -> str:
+def run_bash_script(script: str, working_dir: str | None = None) -> str:
     """Run a Bash script using subprocess.
 
     Args:
         script: Bash script to run
+        working_dir: Working directory for Bash script execution. If provided, changes to this directory permanently.
 
     Returns:
         Output of the Bash script
@@ -93,6 +102,13 @@ def run_bash_script(script: str) -> str:
 
     """
     try:
+        # Change to working directory if specified (permanent change)
+        if working_dir is not None:
+            try:
+                os.chdir(working_dir)
+            except Exception as e:
+                return f"Error changing to working directory '{working_dir}': {str(e)}"
+
         # Trim any leading/trailing whitespace
         script = script.strip()
 

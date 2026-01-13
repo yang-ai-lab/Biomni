@@ -65,6 +65,7 @@ class A1:
         api_key: str | None = None,
         commercial_mode: bool | None = None,
         expected_data_lake_files: list | None = None,
+        python_exec_root_dir: str | None = None,
     ):
         """Initialize the biomni agent.
 
@@ -77,6 +78,7 @@ class A1:
             base_url: Base URL for custom model serving (e.g., "http://localhost:8000/v1")
             api_key: API key for the custom LLM
             commercial_mode: If True, excludes datasets that require commercial licenses or are non-commercial only
+            python_exec_root_dir: Working directory for code execution (Python, R, Bash). Defaults to 'agent_working/' relative to path parameter
 
         """
         # Use default_config values for unspecified parameters
@@ -151,6 +153,20 @@ class A1:
         if not os.path.exists(path):
             os.makedirs(path)
             print(f"Created directory: {path}")
+
+        # Set up python execution root directory
+        if python_exec_root_dir is None:
+            python_exec_root_dir = os.path.join(path, "agent_working")
+
+        # Convert to absolute path
+        self.python_exec_root_dir = os.path.abspath(python_exec_root_dir)
+
+        # Create the execution directory if it doesn't exist
+        if not os.path.exists(self.python_exec_root_dir):
+            os.makedirs(self.python_exec_root_dir)
+            print(f"Created execution directory: {self.python_exec_root_dir}")
+        else:
+            print(f"Using execution directory: {self.python_exec_root_dir}")
 
         # --- Begin custom folder/file checks ---
         benchmark_dir = os.path.join(path, "biomni_data", "benchmark")
@@ -1483,7 +1499,9 @@ Each library is listed with its description to help you understand its functiona
                 ):
                     # Remove the R marker and run as R code
                     r_code = re.sub(r"^#!R|^# R code|^# R script", "", code, count=1).strip()
-                    result = run_with_timeout(run_r_code, [r_code], timeout=timeout)
+                    result = run_with_timeout(
+                        run_r_code, [r_code], kwargs={"working_dir": self.python_exec_root_dir}, timeout=timeout
+                    )
                 # Check if the code is a Bash script or CLI command
                 elif (
                     code.strip().startswith("#!BASH")
@@ -1496,11 +1514,21 @@ Each library is listed with its description to help you understand its functiona
                         cli_command = re.sub(r"^#!CLI", "", code, count=1).strip()
                         # Remove any newlines to ensure it's a single command
                         cli_command = cli_command.replace("\n", " ")
-                        result = run_with_timeout(run_bash_script, [cli_command], timeout=timeout)
+                        result = run_with_timeout(
+                            run_bash_script,
+                            [cli_command],
+                            kwargs={"working_dir": self.python_exec_root_dir},
+                            timeout=timeout,
+                        )
                     else:
                         # For Bash scripts, remove the marker and run as a bash script
                         bash_script = re.sub(r"^#!BASH|^# Bash script", "", code, count=1).strip()
-                        result = run_with_timeout(run_bash_script, [bash_script], timeout=timeout)
+                        result = run_with_timeout(
+                            run_bash_script,
+                            [bash_script],
+                            kwargs={"working_dir": self.python_exec_root_dir},
+                            timeout=timeout,
+                        )
                 # Otherwise, run as Python code
                 else:
                     # Clear any previous plots before execution
@@ -1508,7 +1536,9 @@ Each library is listed with its description to help you understand its functiona
 
                     # Inject custom functions into the Python execution environment
                     self._inject_custom_functions_to_repl()
-                    result = run_with_timeout(run_python_repl, [code], timeout=timeout)
+                    result = run_with_timeout(
+                        run_python_repl, [code], kwargs={"working_dir": self.python_exec_root_dir}, timeout=timeout
+                    )
 
                     # Plots are now captured directly in the execution entry above
 

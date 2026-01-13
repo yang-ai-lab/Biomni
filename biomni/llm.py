@@ -201,6 +201,8 @@ def get_llm(
             raise ImportError(  # noqa: B904
                 "langchain-openai package is required for Gemini models. Install with: pip install langchain-openai"
             )
+        # TODO: convert to vertex AI: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/openai
+
         return ChatOpenAI(
             model=model,
             temperature=temperature,

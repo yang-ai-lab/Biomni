@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import sys
 from io import StringIO
 
@@ -10,18 +11,29 @@ _persistent_namespace = {}
 _captured_plots = []
 
 
-def run_python_repl(command: str) -> str:
+def run_python_repl(command: str, working_dir: str | None = None) -> str:
     """Executes the provided Python command in a persistent environment and returns the output.
     Variables defined in one execution will be available in subsequent executions.
+
+    Args:
+        command: Python code to execute
+        working_dir: Working directory for code execution. If provided, changes to this directory permanently.
     """
 
-    def execute_in_repl(command: str) -> str:
+    def execute_in_repl(command: str, working_dir: str | None = None) -> str:
         """Helper function to execute the command in the persistent environment."""
         old_stdout = sys.stdout
         sys.stdout = mystdout = StringIO()
 
         # Use the persistent namespace
         global _persistent_namespace
+
+        # Change to working directory if specified (permanent change)
+        if working_dir is not None:
+            try:
+                os.chdir(working_dir)
+            except Exception as e:
+                return f"Error changing to working directory '{working_dir}': {str(e)}"
 
         try:
             # Apply matplotlib monkey patches before execution
@@ -41,7 +53,7 @@ def run_python_repl(command: str) -> str:
         return output
 
     command = command.strip("```").strip()
-    return execute_in_repl(command)
+    return execute_in_repl(command, working_dir)
 
 
 def _capture_matplotlib_plots():
