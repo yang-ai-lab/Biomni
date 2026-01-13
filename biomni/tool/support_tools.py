@@ -17,7 +17,7 @@ def run_python_repl(command: str, working_dir: str | None = None) -> str:
 
     Args:
         command: Python code to execute
-        working_dir: Working directory for code execution. If provided, changes to this directory permanently.
+        working_dir: Working directory for code execution. Code will be executed in this directory without affecting the parent process.
     """
 
     def execute_in_repl(command: str, working_dir: str | None = None) -> str:
@@ -28,12 +28,16 @@ def run_python_repl(command: str, working_dir: str | None = None) -> str:
         # Use the persistent namespace
         global _persistent_namespace
 
-        # Change to working directory if specified (permanent change)
+        # Inject working directory change into the executed code (isolated to this execution)
         if working_dir is not None:
             try:
-                os.chdir(working_dir)
+                # Validate working directory exists
+                if not os.path.exists(working_dir):
+                    return f"Error: Working directory '{working_dir}' does not exist"
+                # Prepend directory change to the command
+                command = f"import os\nos.chdir({repr(working_dir)})\n{command}"
             except Exception as e:
-                return f"Error changing to working directory '{working_dir}': {str(e)}"
+                return f"Error preparing working directory '{working_dir}': {str(e)}"
 
         try:
             # Apply matplotlib monkey patches before execution

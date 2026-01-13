@@ -27,27 +27,26 @@ def run_r_code(code: str, working_dir: str | None = None) -> str:
 
     Args:
         code: R code to run
-        working_dir: Working directory for R code execution. If provided, changes to this directory permanently.
+        working_dir: Working directory for R code execution. R process will run in this directory without affecting the parent process.
 
     Returns:
         Output of the R code
 
     """
     try:
-        # Change to working directory if specified (permanent change)
-        if working_dir is not None:
-            try:
-                os.chdir(working_dir)
-            except Exception as e:
-                return f"Error changing to working directory '{working_dir}': {str(e)}"
-
         # Create a temporary file to store the R code
         with tempfile.NamedTemporaryFile(suffix=".R", mode="w", delete=False) as f:
             f.write(code)
             temp_file = f.name
 
         # Run the R code using Rscript
-        result = subprocess.run(["Rscript", temp_file], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            ["Rscript", temp_file],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=working_dir if working_dir is not None else None,
+        )
 
         # Clean up the temporary file
         os.unlink(temp_file)
@@ -66,7 +65,7 @@ def run_bash_script(script: str, working_dir: str | None = None) -> str:
 
     Args:
         script: Bash script to run
-        working_dir: Working directory for Bash script execution. If provided, changes to this directory permanently.
+        working_dir: Working directory for Bash script execution. Bash process will run in this directory without affecting the parent process.
 
     Returns:
         Output of the Bash script
@@ -102,13 +101,6 @@ def run_bash_script(script: str, working_dir: str | None = None) -> str:
 
     """
     try:
-        # Change to working directory if specified (permanent change)
-        if working_dir is not None:
-            try:
-                os.chdir(working_dir)
-            except Exception as e:
-                return f"Error changing to working directory '{working_dir}': {str(e)}"
-
         # Trim any leading/trailing whitespace
         script = script.strip()
 
@@ -130,9 +122,11 @@ def run_bash_script(script: str, working_dir: str | None = None) -> str:
         # Make the script executable
         os.chmod(temp_file, 0o755)
 
-        # Get current environment variables and working directory
+        # Get current environment variables
         env = os.environ.copy()
-        cwd = os.getcwd()
+
+        # Use working_dir if provided, otherwise use current directory
+        cwd = working_dir if working_dir is not None else os.getcwd()
 
         # Run the Bash script with the current environment and working directory
         result = subprocess.run(
