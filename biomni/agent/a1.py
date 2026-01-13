@@ -3025,3 +3025,10 @@ Each library is listed with its description to help you understand its functiona
         # Launch
         print(f"Launching Gradio demo on {server_name}:7860")
         demo.launch(share=share, server_name=server_name)
+
+    def clear_persistent_namespace(self):
+        """Clear the persistent namespace used for executing commands."""
+        from biomni.tool.support_tools import _persistent_namespace
+
+        _persistent_namespace.clear()
+        print("Persistent namespace cleared.")
