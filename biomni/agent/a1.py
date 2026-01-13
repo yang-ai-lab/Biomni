@@ -66,6 +66,7 @@ class A1:
         commercial_mode: bool | None = None,
         expected_data_lake_files: list | None = None,
         python_exec_root_dir: str | None = None,
+        recursion_limit: int = 50,
     ):
         """Initialize the biomni agent.
 
@@ -113,6 +114,7 @@ class A1:
         self.data_lake_dict = data_lake_dict
         self.library_content_dict = library_content_dict
         self.commercial_mode = commercial_mode
+        self.recursion_limit = recursion_limit
 
         # Display configuration in a nice, readable format
         print("\n" + "=" * 50)
@@ -1795,7 +1797,7 @@ Each library is listed with its description to help you understand its functiona
             self.update_system_prompt_with_selected_resources(selected_resources_names)
 
         inputs = {"messages": [HumanMessage(content=prompt)], "next_step": None}
-        config = {"recursion_limit": 500, "configurable": {"thread_id": 42}}
+        config = {"recursion_limit": self.recursion_limit, "configurable": {"thread_id": 42}}
         self.log = []
 
         # Store the final conversation state for markdown generation
