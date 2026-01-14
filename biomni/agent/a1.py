@@ -2,6 +2,7 @@ import glob
 import inspect
 import os
 import re
+import uuid
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
@@ -1782,11 +1783,12 @@ Each library is listed with its description to help you understand its functiona
 
         return selected_resources_names
 
-    def go(self, prompt):
+    def go(self, prompt, thread_id: str | None = None):
         """Execute the agent with the given prompt.
 
         Args:
             prompt: The user's query
+            thread_id: Optional unique identifier for the conversation thread. If None, a random UUID is generated.
 
         """
         self.critic_count = 0
@@ -1797,7 +1799,11 @@ Each library is listed with its description to help you understand its functiona
             self.update_system_prompt_with_selected_resources(selected_resources_names)
 
         inputs = {"messages": [HumanMessage(content=prompt)], "next_step": None}
-        config = {"recursion_limit": self.recursion_limit, "configurable": {"thread_id": 42}}
+
+        if thread_id is None:
+            thread_id = str(uuid.uuid4())
+
+        config = {"recursion_limit": self.recursion_limit, "configurable": {"thread_id": thread_id}}
         self.log = []
 
         # Store the final conversation state for markdown generation
@@ -1814,7 +1820,7 @@ Each library is listed with its description to help you understand its functiona
 
         return self.log, message.content
 
-    def go_stream(self, prompt) -> Generator[dict, None, None]:
+    def go_stream(self, prompt, thread_id: str | None = None) -> Generator[dict, None, None]:
         """Execute the agent with the given prompt and return a generator that yields each step.
 
         This function returns a generator that yields each step of the agent's execution,
@@ -1822,6 +1828,7 @@ Each library is listed with its description to help you understand its functiona
 
         Args:
             prompt: The user's query
+            thread_id: Optional unique identifier for the conversation thread. If None, a random UUID is generated.
 
         Yields:
             dict: Each step of the agent's execution containing the current message and state
@@ -1834,7 +1841,11 @@ Each library is listed with its description to help you understand its functiona
             self.update_system_prompt_with_selected_resources(selected_resources_names)
 
         inputs = {"messages": [HumanMessage(content=prompt)], "next_step": None}
-        config = {"recursion_limit": 500, "configurable": {"thread_id": 42}}
+
+        if thread_id is None:
+            thread_id = str(uuid.uuid4())
+
+        config = {"recursion_limit": 500, "configurable": {"thread_id": thread_id}}
         self.log = []
 
         # Store the final conversation state for markdown generation
