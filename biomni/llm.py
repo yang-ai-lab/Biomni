@@ -68,6 +68,8 @@ def get_llm(
                 source = "AzureOpenAI"
             elif model[:7] == "gemini-":
                 source = "Gemini"
+            elif "glm" in model.lower():
+                source = "Gemini"
             elif "groq" in model.lower():
                 source = "Groq"
             elif base_url is not None:
@@ -196,18 +198,24 @@ def get_llm(
         #     google_api_key=api_key,
         # )
         try:
+            import google.auth.transport.requests
+            from google.auth import default
             from langchain_openai import ChatOpenAI
         except ImportError:
             raise ImportError(  # noqa: B904
                 "langchain-openai package is required for Gemini models. Install with: pip install langchain-openai"
             )
         # TODO: convert to vertex AI: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/openai
+        credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        credentials.refresh(google.auth.transport.requests.Request())
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
 
         return ChatOpenAI(
             model=model,
             temperature=temperature,
-            api_key=os.getenv("GEMINI_API_KEY"),
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            api_key=credentials.token,
+            base_url=f"https://aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/endpoints/openapi",
             stop_sequences=stop_sequences,
         )
 
